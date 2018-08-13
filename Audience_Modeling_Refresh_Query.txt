@@ -1,0 +1,39 @@
+drop table audience_modeling
+SELECT user_id,
+  ip_address,
+  browser_name,
+  platform,
+  CASE WHEN notify_allow > 0 THEN 1 ELSE 0 END as notify_allow,
+  CASE WHEN notify_click> 0 THEN 1 ELSE 0 END as notify_click,
+  CASE WHEN notify_received > 0 THEN 1 ELSE 0 END as notify_received,
+  CASE WHEN notify_register > 0 THEN 1 ELSE 0 END as notify_register
+FROM (
+  select
+    user_id,
+    ip_address,
+    browser_name,
+    platform,
+    SUM(CASE WHEN event_name = 'notify_allow'
+      THEN 1
+        ELSE 0 END) AS notify_allow,
+    SUM(CASE WHEN event_name = 'notify_click'
+      THEN 1
+        ELSE 0 END) AS notify_click,
+    SUM(CASE WHEN event_name = 'notify_received'
+      THEN 1
+        ELSE 0 END) AS notify_received,
+    SUM(CASE WHEN event_name = 'notify_register'
+      THEN 1
+        ELSE 0 END) AS notify_register
+  from impressions
+  where 1 = 1
+        and event_name in ('notify_received', 'notify_click', 'notify_allow', 'notify_register')
+        and imp in ('horoscope_microsite')
+        and date BETWEEN '2018-06-01' AND CAST(DATEADD(DAY, -1, GETDATE()) AS DATE)
+  group by
+    user_id,
+    ip_address,
+    browser_name,
+    platform
+)
+SELECT SUM(notify_click) as clicks, SUM(notify_received) as receives FROM audience_modeling WHERE notify_received = 1
